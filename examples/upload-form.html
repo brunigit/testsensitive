@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Anonymizer - Upload Form</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="email"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input[type="email"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .result {
+            display: none;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .spinner {
+            display: none;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            text-align: center;
+            color: #667eea;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">🛡️</div>
+            <h1>Excel Data Anonymizer</h1>
+            <p class="subtitle">Anonimizza i tuoi dati sensibili in modo sicuro</p>
+        </div>
+
+        <div class="info-box">
+            <h3>📋 Dati che verranno anonimizzati:</h3>
+            <ul>
+                <li>Email e numeri di telefono</li>
+                <li>Nomi di persona e indirizzi</li>
+                <li>Menzioni social media (@username)</li>
+                <li>Numeri carta di credito e dati finanziari</li>
+                <li>Indirizzi IP e URL</li>
+            </ul>
+        </div>
+
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="email">📧 La tua Email (per ricevere il file)</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="tua-email@example.com"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="file">📁 Seleziona file Excel (.xlsx)</label>
+                <div class="file-input-wrapper">
+                    <input
+                        type="file"
+                        id="file"
+                        name="file"
+                        accept=".xlsx,.xls"
+                        required
+                    >
+                </div>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                🚀 Anonimizza e Invia
+            </button>
+        </form>
+
+        <div class="spinner" id="spinner"></div>
+        <div class="loading-text" id="loadingText" style="display: none;">
+            Elaborazione in corso... Potrebbe richiedere alcuni secondi.
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div class="footer">
+            <p>🔒 I tuoi dati sono al sicuro. Powered by Google Sensitive Data Protection</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const spinner = document.getElementById('spinner');
+        const loadingText = document.getElementById('loadingText');
+        const result = document.getElementById('result');
+
+        // ⚠️ SOSTITUISCI CON IL TUO URL WEBHOOK N8N
+        const WEBHOOK_URL = 'http://localhost:5678/webhook/upload-excel';
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Reset UI
+            result.style.display = 'none';
+            result.className = 'result';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Elaborazione...';
+            spinner.style.display = 'block';
+            loadingText.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', document.getElementById('file').files[0]);
+                formData.append('email', document.getElementById('email').value);
+
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <strong>✅ Successo!</strong><br>
+                        ${data.message}<br>
+                        <small>Righe elaborate: ${data.rowsProcessed}</small><br>
+                        <small>Email inviata a: ${data.emailSentTo}</small>
+                    `;
+                } else {
+                    throw new Error(data.message || 'Errore durante l\'elaborazione');
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `
+                    <strong>❌ Errore</strong><br>
+                    ${error.message}<br>
+                    <small>Riprova o contatta l'assistenza</small>
+                `;
+            } finally {
+                result.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Anonimizza e Invia';
+                spinner.style.display = 'none';
+                loadingText.style.display = 'none';
+            }
+        });
+
+        // Mostra nome file selezionato
+        document.getElementById('file').addEventListener('change', (e) => {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                console.log('File selezionato:', fileName);
+            }
+        });
+    </script>
+</body>
+</html>

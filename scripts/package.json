@@ -1,0 +1,23 @@
+{
+  "name": "dlp-api-test-scripts",
+  "version": "1.0.0",
+  "description": "Script di test per Google Sensitive Data Protection API",
+  "main": "test-dlp-api.js",
+  "scripts": {
+    "test": "node test-dlp-api.js",
+    "test:webhook": "node test-webhook.js"
+  },
+  "keywords": [
+    "google",
+    "dlp",
+    "sensitive-data-protection",
+    "anonymization"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/dlp": "^5.0.0",
+    "axios": "^1.6.0",
+    "form-data": "^4.0.0"
+  }
+}

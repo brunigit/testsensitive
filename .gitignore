@@ -1,0 +1,44 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Google Cloud credentials
+*.json
+!config/.env.example
+!config/transformation-config.json
+!n8n-workflows/*.json
+!scripts/package.json
+service-account-key.json
+gcp-credentials.json
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# n8n
+.n8n/
+n8n-config/
+
+# Test files
+test-uploads/
+*.xlsx
+*.xls
+*.csv
+!examples/*.xlsx
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log

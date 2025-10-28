@@ -1,0 +1,272 @@
+{
+  "name": "Excel Data Anonymizer - Google DLP",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload-excel",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Upload Excel",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "excel-upload-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "data",
+        "options": {
+          "readAsString": false,
+          "headerRow": true
+        }
+      },
+      "id": "read-excel",
+      "name": "Read Excel File",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepara i dati per Google DLP API\nconst items = $input.all();\nconst projectId = $env.GOOGLE_CLOUD_PROJECT_ID;\n\n// Estrai headers e rows dal file Excel\nconst headers = [];\nconst rows = [];\n\nif (items.length > 0) {\n  const firstItem = items[0].json;\n  \n  // Ottieni le colonne\n  for (const key in firstItem) {\n    headers.push({ name: key });\n  }\n  \n  // Converti ogni item in una row\n  for (const item of items) {\n    const row = {\n      values: []\n    };\n    \n    for (const key in item.json) {\n      row.values.push({\n        stringValue: String(item.json[key] || '')\n      });\n    }\n    \n    rows.push(row);\n  }\n}\n\n// Costruisci il payload per l'API\nconst dlpPayload = {\n  item: {\n    table: {\n      headers: headers,\n      rows: rows\n    }\n  },\n  deidentifyConfig: {\n    recordTransformations: {\n      fieldTransformations: [\n        {\n          fields: headers,\n          infoTypeTransformations: {\n            transformations: [\n              {\n                primitiveTransformation: {\n                  characterMaskConfig: {\n                    maskingCharacter: \"*\",\n                    numberToMask: 0,\n                    reverseOrder: false\n                  }\n                }\n              }\n            ]\n          }\n        }\n      ]\n    }\n  },\n  inspectConfig: {\n    infoTypes: [\n      { name: \"EMAIL_ADDRESS\" },\n      { name: \"PHONE_NUMBER\" },\n      { name: \"PERSON_NAME\" },\n      { name: \"STREET_ADDRESS\" },\n      { name: \"IP_ADDRESS\" },\n      { name: \"CREDIT_CARD_NUMBER\" },\n      { name: \"DATE_OF_BIRTH\" },\n      { name: \"LOCATION\" },\n      { name: \"URL\" }\n    ],\n    customInfoTypes: [\n      {\n        infoType: { name: \"SOCIAL_MEDIA_USERNAME\" },\n        regex: { pattern: \"@[A-Za-z0-9_]{1,30}\" },\n        likelihood: \"LIKELY\"\n      },\n      {\n        infoType: { name: \"TWITTER_HANDLE\" },\n        regex: { pattern: \"(?:^|[^@\\\\w])@([A-Za-z0-9_]{1,15})\\\\b\" },\n        likelihood: \"LIKELY\"\n      },\n      {\n        infoType: { name: \"INSTAGRAM_HANDLE\" },\n        regex: { pattern: \"(?:@|(?:instagram\\\\.com/))([A-Za-z0-9_.]{1,30})\" },\n        likelihood: \"LIKELY\"\n      }\n    ],\n    minLikelihood: \"POSSIBLE\",\n    includeQuote: true\n  }\n};\n\nreturn [\n  {\n    json: {\n      projectId: projectId,\n      payload: dlpPayload,\n      originalHeaders: headers,\n      userEmail: $node[\"Webhook - Upload Excel\"].json.body.email || 'user@example.com'\n    }\n  }\n];"
+      },
+      "id": "prepare-dlp-request",
+      "name": "Prepare DLP Request",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "requestMethod": "POST",
+        "url": "=https://dlp.googleapis.com/v2/projects/{{$json.projectId}}/content:deidentify",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "google-dlp-api",
+      "name": "Google DLP - De-identify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 300],
+      "credentials": {
+        "googleApi": {
+          "id": "google-service-account",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Processa la risposta DLP e ricostruisci i dati\nconst response = $input.first().json;\nconst originalHeaders = $node[\"Prepare DLP Request\"].json.originalHeaders;\n\n// Estrai la tabella de-identificata\nconst deidentifiedTable = response.item.table;\n\n// Converti in formato per Excel\nconst outputData = [];\n\nfor (const row of deidentifiedTable.rows) {\n  const rowObj = {};\n  \n  for (let i = 0; i < originalHeaders.length; i++) {\n    const headerName = originalHeaders[i].name;\n    const value = row.values[i].stringValue || '';\n    rowObj[headerName] = value;\n  }\n  \n  outputData.push({\n    json: rowObj\n  });\n}\n\n// Aggiungi metadati per l'email\noutputData[0].json._metadata = {\n  userEmail: $node[\"Prepare DLP Request\"].json.userEmail,\n  processedAt: new Date().toISOString(),\n  rowsProcessed: outputData.length\n};\n\nreturn outputData;"
+      },
+      "id": "process-dlp-response",
+      "name": "Process DLP Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "toFile",
+        "fileFormat": "xlsx",
+        "options": {
+          "fileName": "anonymized_data.xlsx",
+          "headerRow": true,
+          "sheetName": "Anonymized Data"
+        }
+      },
+      "id": "write-excel",
+      "name": "Create Anonymized Excel",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepara i dati per l'invio email\nconst metadata = $input.first().json._metadata;\nconst fileName = 'anonymized_data_' + new Date().getTime() + '.xlsx';\n\nreturn [\n  {\n    json: {\n      to: metadata.userEmail,\n      subject: 'File Excel Anonimizzato - Pronto per il Download',\n      emailBody: `\n        <h2>Il tuo file è stato anonimizzato con successo!</h2>\n        <p>Ciao,</p>\n        <p>Il tuo file Excel è stato elaborato e anonimizzato utilizzando Google Sensitive Data Protection.</p>\n        <p><strong>Dettagli elaborazione:</strong></p>\n        <ul>\n          <li>Righe elaborate: ${metadata.rowsProcessed}</li>\n          <li>Data elaborazione: ${new Date(metadata.processedAt).toLocaleString('it-IT')}</li>\n        </ul>\n        <p>Il file anonimizzato è allegato a questa email.</p>\n        <p><strong>Dati anonimizzati:</strong></p>\n        <ul>\n          <li>Email</li>\n          <li>Numeri di telefono</li>\n          <li>Nomi di persona</li>\n          <li>Indirizzi</li>\n          <li>Menzioni social media (@username)</li>\n          <li>URL e indirizzi IP</li>\n          <li>Numeri carta di credito</li>\n          <li>E altri dati sensibili...</li>\n        </ul>\n        <p>Grazie per aver utilizzato il nostro servizio!</p>\n        <hr>\n        <p style=\"font-size: 12px; color: #666;\">Questo sistema utilizza Google Sensitive Data Protection per garantire la massima sicurezza dei tuoi dati.</p>\n      `,\n      fileName: fileName\n    },\n    binary: $input.first().binary\n  }\n];"
+      },
+      "id": "prepare-email",
+      "name": "Prepare Email",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.emailBody }}",
+        "options": {
+          "attachments": "data",
+          "attachmentsPropertyName": "={{ $json.fileName }}"
+        }
+      },
+      "id": "send-email",
+      "name": "Send Email - Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1650, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth2",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  message: 'File elaborato con successo! Riceverai una email con il file anonimizzato.',\n  rowsProcessed: $node['Process DLP Response'].json._metadata.rowsProcessed,\n  emailSentTo: $node['Prepare Email'].json.to\n}) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [\n              {\n                "name": "Content-Type",\n                "value": "application/json"\n              }\n            ]\n          }\n        }
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: false,\n  error: $json.error,\n  message: 'Si è verificato un errore durante l\\'elaborazione del file. Riprova più tardi.'\n}) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 500]
+    }
+  ],
+  "connections": {
+    "Webhook - Upload Excel": {
+      "main": [
+        [
+          {
+            "node": "Read Excel File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel File": {
+      "main": [
+        [
+          {
+            "node": "Prepare DLP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare DLP Request": {
+      "main": [
+        [
+          {
+            "node": "Google DLP - De-identify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google DLP - De-identify": {
+      "main": [
+        [
+          {
+            "node": "Process DLP Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process DLP Response": {
+      "main": [
+        [
+          {
+            "node": "Create Anonymized Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Anonymized Excel": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email - Gmail": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Google DLP",
+      "id": "dlp"
+    },
+    {
+      "name": "Data Anonymization",
+      "id": "anonymization"
+    },
+    {
+      "name": "Excel",
+      "id": "excel"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-20T00:00:00.000Z",
+  "versionId": "1.0.0"
+}

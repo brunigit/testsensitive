@@ -1,0 +1,114 @@
+{
+  "deidentifyConfig": {
+    "recordTransformations": {
+      "fieldTransformations": [
+        {
+          "fields": [
+            {
+              "name": "*"
+            }
+          ],
+          "primitiveTransformation": {
+            "characterMaskConfig": {
+              "maskingCharacter": "*",
+              "numberToMask": 0,
+              "reverseOrder": false
+            }
+          }
+        }
+      ]
+    }
+  },
+  "inspectConfig": {
+    "infoTypes": [
+      {
+        "name": "EMAIL_ADDRESS"
+      },
+      {
+        "name": "PHONE_NUMBER"
+      },
+      {
+        "name": "PERSON_NAME"
+      },
+      {
+        "name": "STREET_ADDRESS"
+      },
+      {
+        "name": "IP_ADDRESS"
+      },
+      {
+        "name": "CREDIT_CARD_NUMBER"
+      },
+      {
+        "name": "DATE_OF_BIRTH"
+      },
+      {
+        "name": "LOCATION"
+      },
+      {
+        "name": "ORGANIZATION_NAME"
+      },
+      {
+        "name": "URL"
+      }
+    ],
+    "customInfoTypes": [
+      {
+        "infoType": {
+          "name": "SOCIAL_MEDIA_USERNAME"
+        },
+        "regex": {
+          "pattern": "@[A-Za-z0-9_]{1,15}"
+        },
+        "likelihood": "LIKELY"
+      },
+      {
+        "infoType": {
+          "name": "TWITTER_HANDLE"
+        },
+        "regex": {
+          "pattern": "(?:^|[^@\\w])@([A-Za-z0-9_]{1,15})\\b"
+        },
+        "likelihood": "LIKELY"
+      },
+      {
+        "infoType": {
+          "name": "INSTAGRAM_HANDLE"
+        },
+        "regex": {
+          "pattern": "(?:@|(?:instagram\\.com/))([A-Za-z0-9_.]{1,30})"
+        },
+        "likelihood": "LIKELY"
+      },
+      {
+        "infoType": {
+          "name": "FACEBOOK_PROFILE"
+        },
+        "regex": {
+          "pattern": "(?:facebook\\.com/|fb\\.com/)([A-Za-z0-9.]{5,})"
+        },
+        "likelihood": "LIKELY"
+      },
+      {
+        "infoType": {
+          "name": "LINKEDIN_PROFILE"
+        },
+        "regex": {
+          "pattern": "(?:linkedin\\.com/in/)([A-Za-z0-9-]{3,100})"
+        },
+        "likelihood": "LIKELY"
+      },
+      {
+        "infoType": {
+          "name": "TIKTOK_HANDLE"
+        },
+        "regex": {
+          "pattern": "(?:@|(?:tiktok\\.com/@))([A-Za-z0-9_.]{1,24})"
+        },
+        "likelihood": "LIKELY"
+      }
+    ],
+    "minLikelihood": "POSSIBLE",
+    "includeQuote": true
+  }
+}
